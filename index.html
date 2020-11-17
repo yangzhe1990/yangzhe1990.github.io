@@ -1,0 +1,69 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Conflux Deposit</title>
+  <script src="conflux-portal-onboarding.bundle.js" defer></script>
+<!--  <script src="sha3.min.js" defer></script>-->
+  <script src="contract.js" defer></script>
+  <script type="text/javascript">
+    const sdk = new ConfluxJSSDK.Conflux({
+      url: 'https://main.confluxrpc.org',
+      logger: console,
+    });
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Conflux Deposit</h1>
+  </header>
+  <main>
+    <section>
+      <h2>Connect</h2>
+      <button id="connectButton" disabled></button>
+    </section>
+    <section>
+      <h2>CFX Direct Deposit</h2>
+      Balance: <span id="balance">Not connected</span></br>
+      Staking Balance: <span id="staking_balance">Not connected</span></br>
+      <button id="cfxDeposit" disable>CFX Deposit (amount in CFX)</button><input id="cfxDepositAmount" type="number" value="0"></br>
+      <button id="cfxWithdraw" disable>CFX Withdrawal (amount in CFX)</button><input id="cfxWithdrawAmount" type="number" value="0"></br>
+      <button id="cfxWithdrawAll" disable>CFX Withdrawal All</button></br>
+    </section>
+    <section>
+      <h2>Status</h2>
+      <div>
+        Network: <span id="network"></span>
+      </div>
+      <div>
+        ChainId: <span id="chainId"></span>
+      </div>
+      <div>
+        Accounts: <span id="accounts"></span>
+      </div>
+    </section>
+    <section>
+      <h2>Sign Typed Data V4</h2>
+      <button id="signTypedData" disabled>Typed Sign</button>
+      <div>Sign Typed Data Result: <span id="signTypedDataResult"></span></div>
+      <br>
+      <button id="sendSignedTypedData" disabled>Send</button>
+      <div>Send Signed Typed Data Result: <span id="sendSignedTypedDataResult"></span></div>
+    </section>
+    <section>
+      <h2> Personal Sign Data </h2>
+      <button id="personalSignData" disabled>Personal Sign</button>
+      <div>Personal Sign Data Result: <span id="personalSignDataResult"></span></div>
+    </section>
+    <section>
+      <h2> CFX Sign Data </h2>
+      <button id="cfxSignData" disabled>CFX Sign</button>
+      <div>CFX Sign Data Result: <span id="cfxSignDataResult"></span></div>
+    </section>
+    <section>
+      <h2>Get Accounts</h2>
+      <button id="getAccounts">cfx_accounts</button>
+      <div id="getAccountsResult"></div>
+    </section>
+  </main>
+</body>
+</html>
