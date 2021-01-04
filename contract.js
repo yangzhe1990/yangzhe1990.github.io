@@ -16,8 +16,8 @@ const from_float = (bint) => {
 
 const initialize = () => {
   // util function
-  to_bint = ConfluxJSSDK.util.format.bigUInt
-  from_bint = ConfluxJSSDK.util.format.hexUInt
+  to_bint = ConfluxJSSDK.format.bigUInt
+  from_bint = ConfluxJSSDK.format.hexUInt
 
   const onboardButton = document.getElementById('connectButton')
   const balanceText = document.getElementById('balance')
@@ -43,7 +43,6 @@ const initialize = () => {
   const getAccountsButton = document.getElementById('getAccounts')
   const getAccountsResults = document.getElementById('getAccountsResult')
 
-  const tokenAddress = document.getElementById('tokenAddress')
   const networkDiv = document.getElementById('network')
   const chainIdDiv = document.getElementById('chainId')
   const accountsDiv = document.getElementById('accounts')
@@ -128,7 +127,8 @@ const initialize = () => {
           cfxDepositAmount.value = BigInt(balance.split('.')[0])
         }
         var account = await sdk.provider.call("cfx_getAccount", accounts[0])
-        var stakingBalanceHex = account.stakingBalance
+        // this is global because withdrawAll needs it.
+        stakingBalanceHex = account.stakingBalance
         var accumulatedInterestReturnHex = account.accumulatedInterestReturn
         var stakingBalance = from_float(to_bint(stakingBalanceHex))
         stakingBalanceText.innerText = stakingBalance
