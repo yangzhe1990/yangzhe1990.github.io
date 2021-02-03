@@ -16,8 +16,9 @@ const from_float = (bint) => {
 
 const initialize = () => {
   // util function
-  to_bint = ConfluxJSSDK.format.bigUInt
-  from_bint = ConfluxJSSDK.format.hexUInt
+  const to_bint = ConfluxJSSDK.format.bigUInt;
+  const from_bint = ConfluxJSSDK.format.hexUInt;
+  const hex_to_b32 = window.jsConfluxSdk.format.address;
 
   const onboardButton = document.getElementById('connectButton')
   const balanceText = document.getElementById('balance')
@@ -46,6 +47,7 @@ const initialize = () => {
   const networkDiv = document.getElementById('network')
   const chainIdDiv = document.getElementById('chainId')
   const accountsDiv = document.getElementById('accounts')
+  var selectedAddress;
 
   let onboarding
   try {
@@ -54,7 +56,7 @@ const initialize = () => {
   } catch (error) {
     console.error(error)
   }
-  let accounts
+  var accounts;
 
   const isConfluxPortalConnected = () => accounts && accounts.length > 0
 
@@ -121,12 +123,20 @@ const initialize = () => {
   const initDisplayBalances = () => {
     setAsyncInterval(async () => {
       if (isConfluxPortalConnected()) {
-        balance = from_float(await confluxJS.getBalance(accounts[0]))
+        // Update total supply.
+        var totalSupply = await sdk.provider.call("cfx_getSupplyInfo");
+        for (let key in totalSupply) {
+          totalSupply[key] = from_float(to_bint(totalSupply[key]))
+        }
+        document.getElementById("supply").innerText = JSON.stringify(totalSupply);
+        console.log(JSON.stringify(totalSupply));
+
+        balance = from_float(await confluxJS.getBalance(conflux.selectedAddress))
         balanceText.innerText = balance
         if (cfxDepositAmount.value == 0) {
           cfxDepositAmount.value = BigInt(balance.split('.')[0])
         }
-        var account = await sdk.provider.call("cfx_getAccount", accounts[0])
+        var account = await sdk.provider.call("cfx_getAccount", selectedAddress)
         // this is global because withdrawAll needs it.
         stakingBalanceHex = account.stakingBalance
         var accumulatedInterestReturnHex = account.accumulatedInterestReturn
@@ -256,13 +266,14 @@ const initialize = () => {
       ],
       "bytecode": "608060405234801561001057600080fd5b5061026e806100206000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c80632e1a7d4d1461006757806344a51d6d14610095578063b04ef9c2146100cd578063b3657ee714610125578063b6b55f2514610187578063c90abac8146101b5575b600080fd5b6100936004803603602081101561007d57600080fd5b8101908080359060200190929190505050610217565b005b6100cb600480360360408110156100ab57600080fd5b81019080803590602001909291908035906020019092919050505061021a565b005b61010f600480360360208110156100e357600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061021e565b6040518082815260200191505060405180910390f35b6101716004803603604081101561013b57600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610225565b6040518082815260200191505060405180910390f35b6101b36004803603602081101561019d57600080fd5b810190808035906020019092919050505061022d565b005b610201600480360360408110156101cb57600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610230565b6040518082815260200191505060405180910390f35b50565b5050565b6000919050565b600092915050565b50565b60009291505056fea26469706673582212205c6c4fe7b39944b834c1d42369acca663bfaed5aa3faf2554f4ca120bfa3fc5564736f6c63430006060033"
     })
-    stakingInternalContract.address = '0x0888000000000000000000000000000000000002'
+    stakingInternalContract.address = 'cfx:type.builtin:aaejuaaaaaaaaaaaaaaaaaaaaaaaaaaaajrwuc9jnb';
+    stakingInternalContract.address = '0x0888000000000000000000000000000000000002';
     cfxDepositButton.onclick = async () => {
       console.log(cfxDepositAmount.value)
       amount = BigInt(cfxDepositAmount.value)
       const depositResult = await stakingInternalContract.deposit((amount * CFX).toString()).sendTransaction({
         value: 0,
-        from: accounts[0],
+        from: conflux.selectedAddress,
         gasPrice: 1,
       })
           .confirmed()
@@ -273,7 +284,7 @@ const initialize = () => {
       amount = BigInt(cfxWithdrawAmount.value)
       const withdrawResult = await stakingInternalContract.withdraw((amount * CFX).toString()).sendTransaction({
         value: 0,
-        from: accounts[0],
+        from: conflux.selectedAddress,
         gasPrice: 1,
       })
           .confirmed()
@@ -283,7 +294,7 @@ const initialize = () => {
       console.log("withdraw all: ", stakingBalanceHex)
       const withdrawResult = await stakingInternalContract.withdraw(stakingBalanceHex).sendTransaction({
         value: 0,
-        from: accounts[0],
+        from: conflux.selectedAddress,
         gasPrice: 1,
       })
           .confirmed()
@@ -298,8 +309,8 @@ const initialize = () => {
       confluxJS.provider.sendAsync(
         {
           method: 'personal_sign',
-          params: [personalSignData, conflux.selectedAddress],
-          from: conflux.selectedAddress,
+          params: [personalSignData, selectedAddress],
+          from: selectedAddress,
         },
         (err, result) => {
           if (err) {
@@ -320,8 +331,8 @@ const initialize = () => {
       confluxJS.provider.sendAsync(
         {
           method: 'cfx_sign',
-          params: [conflux.selectedAddress, keccak256.digest(sampleData)],
-          from: conflux.selectedAddress,
+          params: [selectedAddress, keccak256.digest(sampleData)],
+          from: selectedAddress,
         },
         (err, result) => {
           if (err) {
@@ -384,8 +395,8 @@ const initialize = () => {
       confluxJS.provider.sendAsync(
         {
           method: 'cfx_signTypedData_v4',
-          params: [conflux.selectedAddress, JSON.stringify(typedData)],
-          from: conflux.selectedAddress,
+          params: [selectedAddress, JSON.stringify(typedData)],
+          from: selectedAddress,
         },
         (err, result) => {
           if (err) {
@@ -404,8 +415,8 @@ const initialize = () => {
       const signedData = JSON.parse(signTypedDataResults.innerHTML).result
       const txResult = await confluxJS
         .sendTransaction({
-          from: accounts[0],
-          to: accounts[0],
+          from: conflux.selectedAddress,
+          to: conflux.selectedAddress,
           data: signedData,
           gasPrice: 1,
         })
@@ -416,7 +427,7 @@ const initialize = () => {
     getAccountsButton.addEventListener('click', async () => {
       try {
         const accounts = await conflux.send({ method: 'cfx_accounts' })
-        getAccountsResults.innerHTML = accounts[0] || 'Not able to get accounts'
+        getAccountsResults.innerHTML = conflux.selectedAddress || 'Not able to get accounts'
       } catch (error) {
         console.error(error)
         getAccountsResults.innerHTML = `Error: ${error}`
@@ -442,9 +453,17 @@ const initialize = () => {
       const connecting = Boolean(
         (!accounts || !accounts.length) && newAccounts && newAccounts.length
       )
-      accounts = newAccounts
-      accountsDiv.innerHTML = accounts
+      console.log(newAccounts)
+
+      const networkId = parseInt(conflux.networkVersion);
+      accounts = [];
+      for (let addr of newAccounts) {
+        accounts.push(hex_to_b32(addr, networkId) );
+      }
+
+      accountsDiv.innerHTML = accounts;
       if (connecting) {
+        selectedAddress = accounts[0];
         initializeAccountButtons()
       }
       updateButtons()

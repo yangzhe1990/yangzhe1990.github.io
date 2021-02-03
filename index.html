@@ -7,9 +7,13 @@
   <script src="contract.js" defer></script>
   <script type="text/javascript">
     const sdk = new ConfluxJSSDK.Conflux({
-      url: 'https://main.confluxrpc.org',
+      url: 'https://main.confluxrpc.org/v2',
       logger: console,
     });
+  </script>
+  <script type="module">
+    import jsConfluxSdk from 'https://cdn.skypack.dev/js-conflux-sdk@1.5.10';
+    window.jsConfluxSdk = jsConfluxSdk;
   </script>
 </head>
 <body>
@@ -36,6 +40,9 @@
       </div>
       <div>
         ChainId: <span id="chainId"></span>
+      </div>
+      <div>
+        Total Supply CFX: <span id="supply"></span>
       </div>
       <div>
         Accounts: <span id="accounts"></span>
