@@ -68,10 +68,35 @@ const initialize = () => {
   }
 
   const onClickConnect = async () => {
+    console.log("enable conflux")
     await window.conflux.enable()
+    // await window.conflux.request({ method: 'cfx_requestAccounts' })
+    updateAccounts([window.conflux.selectedAddress], window.conflux.networkVersion)
+  }
+
+  const updateAccounts = (newAccounts, networkVersion) => {
+    const connecting = Boolean(
+        (!accounts || !accounts.length) && newAccounts && newAccounts.length
+    )
+    console.log(newAccounts)
+
+    const networkId = parseInt(networkVersion);
+    accounts = [];
+    for (let addr of newAccounts) {
+      accounts.push(hex_to_b32(addr, networkId) );
+    }
+
+    accountsDiv.innerHTML = accounts;
+    if (connecting) {
+      selectedAddress = accounts[0];
+      initializeAccountButtons()
+    }
+    updateButtons()
   }
 
   const updateButtons = () => {
+    console.log("updateButtons and dispatch accountsChanged event")
+    window.conflux.emit(new Event("accountsChanged"))
     if (isConfluxPortalInstalled() && isConfluxPortalConnected()) {
       personalSignData.disabled = false
       cfxSignData.disabled = false
@@ -131,7 +156,7 @@ const initialize = () => {
         document.getElementById("supply").innerText = JSON.stringify(totalSupply);
         console.log(JSON.stringify(totalSupply));
 
-        balance = from_float(await confluxJS.getBalance(conflux.selectedAddress))
+        balance = from_float(await confluxJS.getBalance(selectedAddress))
         balanceText.innerText = balance
         if (cfxDepositAmount.value == 0) {
           cfxDepositAmount.value = BigInt(balance.split('.')[0])
@@ -273,7 +298,7 @@ const initialize = () => {
       amount = BigInt(cfxDepositAmount.value)
       const depositResult = await stakingInternalContract.deposit((amount * CFX).toString()).sendTransaction({
         value: 0,
-        from: conflux.selectedAddress,
+        from: selectedAddress,
         gasPrice: 1,
       })
           .confirmed()
@@ -284,7 +309,7 @@ const initialize = () => {
       amount = BigInt(cfxWithdrawAmount.value)
       const withdrawResult = await stakingInternalContract.withdraw((amount * CFX).toString()).sendTransaction({
         value: 0,
-        from: conflux.selectedAddress,
+        from: selectedAddress,
         gasPrice: 1,
       })
           .confirmed()
@@ -294,7 +319,7 @@ const initialize = () => {
       console.log("withdraw all: ", stakingBalanceHex)
       const withdrawResult = await stakingInternalContract.withdraw(stakingBalanceHex).sendTransaction({
         value: 0,
-        from: conflux.selectedAddress,
+        from: selectedAddress,
         gasPrice: 1,
       })
           .confirmed()
@@ -415,8 +440,8 @@ const initialize = () => {
       const signedData = JSON.parse(signTypedDataResults.innerHTML).result
       const txResult = await confluxJS
         .sendTransaction({
-          from: conflux.selectedAddress,
-          to: conflux.selectedAddress,
+          from: selectedAddress,
+          to: selectedAddress,
           data: signedData,
           gasPrice: 1,
         })
@@ -427,7 +452,7 @@ const initialize = () => {
     getAccountsButton.addEventListener('click', async () => {
       try {
         const accounts = await conflux.send({ method: 'cfx_accounts' })
-        getAccountsResults.innerHTML = conflux.selectedAddress || 'Not able to get accounts'
+        getAccountsResults.innerHTML = accounts || 'Not able to get accounts'
       } catch (error) {
         console.error(error)
         getAccountsResults.innerHTML = `Error: ${error}`
@@ -438,35 +463,27 @@ const initialize = () => {
   updateButtons()
 
   if (isConfluxPortalInstalled()) {
+    console.log("if (isConfluxPortalInstalled())")
 
     initDisplayBalances()
     initCFXDirectDepositButtons()
 
     conflux.autoRefreshOnNetworkChange = false
     conflux.on('networkChanged', networkId => {
+      console.log("networkChanged");
       networkDiv.innerHTML = networkId
     })
     conflux.on('chainIdChanged', chainId => {
+      console.log("chainIdChanged");
       chainIdDiv.innerHTML = chainId
     })
+    conflux.on("connect", connectInfo => {
+      console.log("connect", connectInfo.chainId);
+      chainIdDiv.innerHTML = connectInfo.chainId
+    })
     conflux.on('accountsChanged', newAccounts => {
-      const connecting = Boolean(
-        (!accounts || !accounts.length) && newAccounts && newAccounts.length
-      )
-      console.log(newAccounts)
-
-      const networkId = parseInt(conflux.networkVersion);
-      accounts = [];
-      for (let addr of newAccounts) {
-        accounts.push(hex_to_b32(addr, networkId) );
-      }
-
-      accountsDiv.innerHTML = accounts;
-      if (connecting) {
-        selectedAddress = accounts[0];
-        initializeAccountButtons()
-      }
-      updateButtons()
+      console.log("accountsChanged");
+      updateAccounts(newAccounts, conflux.networkVersion)
     })
   }
 }
